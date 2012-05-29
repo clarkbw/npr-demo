@@ -501,7 +501,7 @@
 
 })( window, jQuery );
 
-amdExports = masonry;
+amdExports = jQuery.fn.masonry;
 
 }.call(root));
     return amdExports;

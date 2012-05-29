@@ -13,6 +13,7 @@ define(function (require) {
     // bootstrap modal, not directly in the UI for the network and appCache
     // displays.
     require('bootstrap/transition');
+    require('masonry/jquery.masonry');
 
         _.mixin({
           ago : function ago(date) { return moment(date).fromNow(); },
@@ -40,7 +41,7 @@ define(function (require) {
           },
           initialize : function () {
           },
-          url : 'http://localhost:8080/stories',
+          url : '/stories',
           parse: function(response) {
             if (response && response.list && response.list.story) {
                 return response.list.story;
@@ -140,5 +141,8 @@ define(function (require) {
         var app = new AppRouter();
         Backbone.history.start();
 
+        $('.stories').masonry({
+            itemSelector: '.story-item'
+        });
     });
 });
