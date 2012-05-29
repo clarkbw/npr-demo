@@ -15,10 +15,11 @@ define(function (require) {
     require('bootstrap/transition');
     require('masonry/jquery.masonry');
 
-        _.mixin({
-          ago : function ago(date) { return moment(date).fromNow(); },
-          seconds : function seconds(secs) { return moment.duration(parseInt(secs), "seconds").humanize(); }
-        });
+    // These are all used in the templates
+    _.mixin({
+      ago : function ago(date) { return moment(date).fromNow(); },
+      seconds : function seconds(secs) { return moment.duration(parseInt(secs), "seconds").humanize(); }
+    });
 
     // Wait for the DOM to be ready before showing the network and appCache
     // state.
@@ -26,6 +27,25 @@ define(function (require) {
         // Enable the UI bindings for the network and appCache displays
         require('./uiNetwork')();
         require('./uiAppCache')();
+
+        // fix sub nav on scroll
+        var $win = $(window)
+          , $nav = $('.subnav')
+          , navTop = $('.subnav').length && $('.subnav').offset().top - 40
+          , isFixed = 0
+
+        function processScroll() {
+          var i, scrollTop = $win.scrollTop()
+          if (scrollTop >= navTop && !isFixed) {
+            isFixed = 1
+            $nav.addClass('subnav-fixed')
+          } else if (scrollTop <= navTop && isFixed) {
+            isFixed = 0
+            $nav.removeClass('subnav-fixed')
+          }
+        }
+        processScroll()
+        $win.on('scroll', processScroll);
 
         var Story = Backbone.Model.extend({
           idAttribute : "id",
