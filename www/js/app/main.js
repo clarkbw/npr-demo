@@ -48,10 +48,7 @@ define(function (require) {
         $win.on('scroll', processScroll);
 
         var Story = Backbone.Model.extend({
-          idAttribute : "id",
-          crop : function() {
-            return this.get("image").crop.filter(function(e) { return e.type == "square"; }).pop();
-          }
+          idAttribute : "id"
         });
 
         var StoryList = Backbone.Collection.extend({
