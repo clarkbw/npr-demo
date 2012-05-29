@@ -1,4 +1,5 @@
 {
+  "name": "npr-demo",
   "amd": {
     "baseUrl": "www/js/lib"
   },
@@ -10,5 +11,10 @@
       "moment": "github:timrwood/moment/1.6.2",
       "masonry": "github:desandro/masonry/v2.1.05"
     }
+  },
+  "dependencies": {
+    "express": ">=2.5.9",
+    "redis": ">=0.7.2",
+    "mime": ">=1.2.5"
   }
 }
