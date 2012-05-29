@@ -46,9 +46,10 @@ app.get('/stories', function(req, res, next) {
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
   res.contentType('json');
   client.hgetall("stories:info", function(err, obj) {
-    //console.log("stories:info", obj); 
+    //console.log("stories:info", obj);
     //console.log("all, ", JSON.stringify(obj));
-    var ret = { list : { story : [] } }; 
+
+    var ret = { list : { story : [] } };
     for (var item in obj) {
       //console.log(item, obj[item], JSON.parse(obj[item]));
       ret.list[item] = JSON.parse(obj[item]);
@@ -72,9 +73,9 @@ app.get('/stories/:id', function(req, res, next) {
 
   res.contentType('json');
   client.hget("stories:info", req.params.id, function(err, obj) {
-    //console.log("stories:info", obj); 
+    //console.log("stories:info", obj);
     //console.log("all, ", JSON.stringify(obj));
-    var ret = { list : { story : [] } }; 
+    var ret = { list : { story : [] } };
     for (var item in obj) {
       //console.log(item, obj[item], JSON.parse(obj[item]));
       ret.list[item] = JSON.parse(obj[item]);
@@ -91,9 +92,9 @@ app.get('/playlist', function(req, res, next) {
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
   res.contentType('json');
   client.smembers("playlist", function(err, obj) {
-    console.log("smembers:playlist", obj); 
+    console.log("smembers:playlist", obj);
     //console.log("all, ", JSON.stringify(obj));
-    var ret = []; 
+    var ret = [];
     for (var item in obj) {
       //console.log(item, obj[item], JSON.parse(obj[item]));
       ret[item] = JSON.parse(obj[item]);
@@ -127,7 +128,7 @@ function setThumbnail(id, src, type, data) {
       console.log("thumbnail", story.thumbnail.medium.$text.substr(0, 144));
       client.hset("stories:stories", id, JSON.stringify(story), redis.print);
     }
-    
+
   });
 }
 function setImage(id, src, type, data) {
@@ -157,62 +158,78 @@ function getStories() {
     method: 'GET'
   };
   var jsonresponse = "", request;
+
   try {
-  request = http.request(options);
-  request.on('response', function (response) {
-    response.on('data', function (chunk) {
-      //console.log('BODY: ' + chunk);
-      jsonresponse += chunk;
-    });
-    response.on("end", function() {
-      try {
-      var resp = JSON.parse(jsonresponse);
-      //console.log(resp);
-      for (var s in resp.list.story) {
-        var story = resp.list.story[s];
-        //console.log("story", story);
-        client.hsetnx("stories:stories", story.id, JSON.stringify(story),
-                      function(err, isNew) {
-                        var _story = resp.list.story[s]
-                        console.log("isNew", isNew);
-                        //if (isNew) {
-                        //  console.log("new", _story.thumbnail, _story.image);
-                        //  if (story.thumbnail && story.thumbnail.medium) {
-                        //    var src = story.thumbnail.medium.$text, img = URL.parse(src);
-                        //    if (img.protocol == "http:") {
-                        //      var set = function(data) { var _id = story.id, _src = src; console.log("data", _id, _src); setImage(_id, _src, "thumbnail", data); };
-                        //      console.log(story.id, src);
-                        //      getImage(src, set);
-                        //    }
-                        //  }
-                        //  for (var i = 0; story.image && i < story.image.length; i++) {
-                        //    var image = story.image[i];
-                        //    for (var j = 0; image.crop && j < image.crop.length; j++) {
-                        //      if (image.crop[j].type == "standard") {
-                        //        var src = image.crop[j].src, img = URL.parse(src);
-                        //        if (img.protocol == "http:") { 
-                        //          var set = function(data) { var _id = story.id, _src = src; console.log("data", _id, _src); setImage(_id, _src, "standard", data); };
-                        //          console.log(story.id, src);
-                        //          getImage(src, set);
-                        //        }
-                        //      }
-                        //    }
-                        //  }
-                        //}
-                      });
-      }
-      var v = ["title", "teaser", "link"];
-      for (var k in v) {
-        client.hset("stories:info", v[k], JSON.stringify(resp.list[v[k]]));
-      }
+    request = http.request(options);
+    request.on('response', function (response) {
+      response.on('data', function (chunk) {
+        //console.log('BODY: ' + chunk);
+        jsonresponse += chunk;
+      });
 
-      // Call update stories so we download all the images
-      updateStories();
+      response.on("end", function() {
+        try {
+          var resp = JSON.parse(jsonresponse);
+          //console.log(resp);
+          resp.list.story.forEach(function (story) {
+            //console.log("story", story);
+            var count = 0,
+              total = 0;
 
-      }catch(e) { console.log("error, likely parsing", e, jsonresponse); }
+            function hasValidCrop (item) {
+              return item.type === 'standard' || item.type === 'square';
+            }
+
+            function done() {
+              count += 1;
+              if (count === total) {
+                client.hsetnx("stories:stories", story.id, JSON.stringify(story),
+                  function(err, isNew) {
+                    console.log("isNew", isNew);
+                  }
+                );
+              }
+            }
+
+            if (story.image && story.image.length) {
+              story.image.forEach(function (image) {
+                var crop = image.crop;
+                if (!crop) {
+                  crop = image.crop = [];
+                }
+
+                if (!crop.some(hasValidCrop)) {
+                  crop.push({
+                    type: 'square',
+                    src: image.src
+                  });
+                };
+
+                crop.forEach(function (item) {
+                  if (hasValidCrop(item)) {
+                    total += 1;
+                    getImage(item.src, function(data) {
+                      item.source_data = data;
+                      done();
+                    });
+                  }
+                });
+
+              });
+            }
+          });
+
+          var v = ["title", "teaser", "link"];
+          for (var k in v) {
+            client.hset("stories:info", v[k], JSON.stringify(resp.list[v[k]]));
+          }
+
+        } catch(e) {
+          console.log("error, likely parsing", e, jsonresponse);
+        }
+      });
     });
-  });
-  request.end();
+    request.end();
   } catch(e) {
     console.log("getStories", e);
   }
@@ -277,7 +294,7 @@ function updateStories() {
         }
       }
     }
-  });  
+  });
 }
 
 // Run getStories now
@@ -288,7 +305,7 @@ updateStories();
 // Run getStories every hour
 //setInterval(getStories, (60 * (60 * (1 * 1000))));
 
-var port = process.env.VCAP_APP_PORT || 8080;
+var port = process.env.VCAP_APP_PORT || 8888;
 console.log("listening on: ", port );
 
 app.listen(port);
