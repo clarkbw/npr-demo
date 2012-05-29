@@ -55,7 +55,7 @@ app.get('/stories', function(req, res, next) {
       ret.list[item] = JSON.parse(obj[item]);
     }
     client.hgetall("stories:stories", function(err, obj) {
-      var count = 10;
+      var count = 7;
       for (var item in obj) {
         if (count-- <= 0) {
           break;
@@ -118,39 +118,8 @@ app.post('/stories', function(req, res, next) {
   res.send();
 })
 
-function setThumbnail(id, src, type, data) {
-  client.hget("stories:stories", id, function(err, obj) {
-    var story = JSON.parse(obj);
-    console.log(id, type);
-    if (type == "thumbnail") {
-      console.log("thumbnail", story.thumbnail.medium.$text.substr(0, 144));
-      story.thumbnail.medium.$text = data;
-      console.log("thumbnail", story.thumbnail.medium.$text.substr(0, 144));
-      client.hset("stories:stories", id, JSON.stringify(story), redis.print);
-    }
-
-  });
-}
-function setImage(id, src, type, data) {
-  client.hget("stories:stories", id, function(err, obj) {
-    var story = JSON.parse(obj);
-    console.log(id, type);
-    for (var i = 0; story.image && i < story.image.length; i++) {
-      var image = story.image[i];
-      for (var j = 0; image.crop && j < image.crop.length; j++) {
-        if (image.crop[j].type == type && image.crop[j].src == src) {
-          console.log("crop ", type, story.image[i].crop[j].src.substr(0, 144));
-          story.image[i].crop[j].src = data;
-          console.log("crop", type, story.image[i].crop[j].src.substr(0, 144));
-        }
-      }
-    }
-    client.hset("stories:stories", id, JSON.stringify(story), redis.print);
-  });
-}
-
 function getStories() {
-  // This is a really slow hand off, we should at least cache the results
+
   var options = {
     port: 80,
     host: 'api.npr.org',
@@ -163,8 +132,13 @@ function getStories() {
     request = http.request(options);
     request.on('response', function (response) {
       response.on('data', function (chunk) {
-        //console.log('BODY: ' + chunk);
-        jsonresponse += chunk;
+        if (response.statusCode == 200) {
+          jsonresponse += chunk;
+        }
+      });
+
+      response.on("error", function(exception) {
+        console.error('error connecting to NPR', exception);
       });
 
       response.on("end", function() {
@@ -188,6 +162,19 @@ function getStories() {
                     console.log("isNew", isNew);
                   }
                 );
+              }
+            }
+
+            if (story.thumbnail) {
+              for (var index in story.thumbnail) {
+                if (story.thumbnail.hasOwnProperty(index)) {
+                  var item = story.thumbnail[index];
+                  total += 1;
+                  getImage(item.$text, function(data) {
+                    item.source_data = data;
+                    done();
+                  });
+                }
               }
             }
 
@@ -254,10 +241,12 @@ function getImage(imgsrc, cb) {
             cb(data);
         });
         response.on('data', function (chunk) {
-            if (response.statusCode == 200) body += chunk;
+            if (response.statusCode == 200) {
+              body += chunk;
+            }
         });
         response.on('error', function (e) {
-            console.log('error', e);
+            console.log('error downloading image', e);
         });
     });
     irequest.end();
@@ -265,45 +254,11 @@ function getImage(imgsrc, cb) {
   } catch(e) { console.log("getImage", e); }
 }
 
-function updateStories() {
-  client.hgetall("stories:stories", function(err, obj) {
-    for (var item in obj) {
-      var story = JSON.parse(obj[item]);
-      console.log("updating story : ", story.id);
-      //if (story.thumbnail && story.thumbnail.medium) {
-      //   var src = story.thumbnail.medium.$text, img = URL.parse(src);
-      //    console.log("updating story : thumbnail", img.protocol);
-      //   if (img.protocol == "http:") {
-      //    var set = function(data) { var _id = story.id, _src = src; console.log("t.data", _id, _src.substr(0, 144)); setImage(_id, _src, "thumbnail", data); };
-      //    console.log(story.id, src);
-      //    getImage(src, set);
-      //   }
-      //}
-      for (var i = 0; story.image && i < story.image.length; i++) {
-        var image = story.image[i];
-        for (var j = 0; image.crop && j < image.crop.length; j++) {
-          if (image.crop[j].type == "standard" || image.crop[j].type == "square") {
-            var src = image.crop[j].src, type = image.crop[j].type, img = URL.parse(src);
-            console.log("updating story : image.crop[j].type", img.protocol);
-            if (img.protocol == "http:") {
-              var set = function(data) { var _id = story.id, _src = src, _type = type; console.log("s.data", _id, _src.substr(0, 144)); setImage(_id, _src, _type, data); };
-              console.log(story.id, type, src.substr(0, 144));
-              getImage(src, set);
-            }
-          }
-        }
-      }
-    }
-  });
-}
-
 // Run getStories now
 getStories();
 
-updateStories();
-
 // Run getStories every hour
-//setInterval(getStories, (60 * (60 * (1 * 1000))));
+setInterval(getStories, (60 * (60 * (1 * 1000))));
 
 var port = process.env.VCAP_APP_PORT || 8888;
 console.log("listening on: ", port );
