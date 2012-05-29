@@ -71,29 +71,34 @@ define(function (require) {
         });
 
         var Stories = new StoryList;
-        //window.Stories.sync();
 
         var StoryListView = Backbone.View.extend({
           tagName:  "div",
-          className: "stories clearfix",
+          className: "stories",
           initialize : function () {
             this.model.bind("reset", this.render, this);
+
+            $(this.el).masonry({
+                itemSelector: '.story-item'
+            });
+
           },
           render : function (eventName) {
-            //$(this.el).empty();
             _.each(this.model.models, function (story) {
               if ($("#story-" + story.id, this.el).length <= 0) {
-                $(this.el).append(new StoryListItemView({model:story}).render().el);
+                $(this.el).append((new StoryListItemView({model:story, id : "#story-" + story.id})).render().el);
               }
             }, this);
-            //PlayListItems.load();
+
+            $(this.el).masonry('reload');
+
             return this;
           }
         });
 
         var StoryListItemView = Backbone.View.extend({
           tagName : "div",
-          className : "story-item span3",
+          className : "story-item",
           template: _.template($('#story-item-template').html()),
           initialize : function() {
             //this.model.bind("change", this.render, this);
@@ -161,8 +166,5 @@ define(function (require) {
         var app = new AppRouter();
         Backbone.history.start();
 
-        $('.stories').masonry({
-            itemSelector: '.story-item'
-        });
     });
 });
