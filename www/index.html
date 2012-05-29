@@ -55,25 +55,25 @@
     </div>
 
     <div id="content" class="clearfix"></div>
-
+    <!-- we're using _.every so we can break out of the loop -->
     <script type="text/template" id="story-item-template">
         <div class="story">
             <% if (typeof(image) != "undefined") { %>
             <div class="image">
-              <% _.each(image, function(i) { %>
+              <% _.every(image, function(i) { %>
                 <% if (typeof(i.crop) != "undefined") { %>
-                  <% _.each(i.crop, function(c) { %>
+                  <% _.every(i.crop, function(c) { %>
                     <% if (c.source_data && (c.type == "square")) { %>
                         <img class="" src="<%= c.source_data %>">
                         <div class="caption">
                           <span class="date"><%= _.ago(pubDate.$text) %></span>
                           <span class="slug"><%= slug.$text %></span>
                         </div>
-                        <% return; %>
-                    <% } %>
+                        <% return false; %>
+                    <% } else { return true; } %>
                   <% }); %>
-                  <% return; %>
-                <% } %>
+                  <% return false; %>
+                <% } else { return true; } %>
                <% }); %>
             </div>
             <% } else { %>
@@ -99,6 +99,33 @@
                 <% } %>
                 <% }); %>
             <% } %>
+    </script>
+    <script type="text/template" id="story-view-template">
+        <div class="slug "><%= slug.$text %></div>
+        <div class="pull-right"><button class="btn add" data-id="<%= id %>">+</button></div>
+        <h2 class="title"><%= title.$text %></h2>
+        <% if (typeof(byline) != "undefined") { %>
+            <% _.each(byline, function(by) { %> <div class="byline">by <%= by.name.$text %> &mdash; <span class="date"><%= _.ago(pubDate.$text) %></span></div>  <% return; }); %>
+        <% } %>
+
+        <div class="image">
+          <% _.every(image, function(i) { %>
+            <% if (typeof(i.crop) != "undefined") { %>
+              <% _.every(i.crop, function(c) { %>
+                <% if (c.source_data && (c.type == "square")) { %>
+                    <img class="" src="<%= c.source_data %>">
+                    <div class="caption">
+                      <span class="date"><%= _.ago(pubDate.$text) %></span>
+                      <span class="slug"><%= slug.$text %></span>
+                    </div>
+                    <% return false; %>
+                <% } else { return true; } %>
+              <% }); %>
+              <% return false; %>
+            <% } else { return true; } %>
+           <% }); %>
+        </div>
+        <div class="text"><% _.each(textWithHtml.paragraph, function(t) { %><p><%= t.$text %></p><% }); %></div>
     </script>
     <!-- Load the main app module via the module loader -->
     <script async data-main="js/app" src="js/lib/require.js" charset="utf-8"></script>
