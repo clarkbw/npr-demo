@@ -137,10 +137,6 @@ function getStories() {
         }
       });
 
-      response.on("error", function(exception) {
-        console.error('error connecting to NPR', exception);
-      });
-
       response.on("end", function() {
         try {
           var resp = JSON.parse(jsonresponse);
@@ -165,7 +161,8 @@ function getStories() {
               }
             }
 
-            if (story.thumbnail) {
+            // not getting thumbnails for now
+            if (false && story.thumbnail) {
               for (var index in story.thumbnail) {
                 if (story.thumbnail.hasOwnProperty(index)) {
                   var item = story.thumbnail[index];
@@ -216,6 +213,9 @@ function getStories() {
         }
       });
     });
+    request.on("error", function(exception) {
+      console.error('error connecting to NPR', exception);
+    });
     request.end();
   } catch(e) {
     console.log("getStories", e);
@@ -224,33 +224,35 @@ function getStories() {
 
 function getImage(imgsrc, cb) {
   try {
-  var img = URL.parse(imgsrc);
-  //console.log("img", img);
-  if (img) {
-    var irequest = http.createClient(80, img.hostname).request('GET', img.pathname, {'host': img.hostname});
-    irequest.on('response', function (response)
-    {
-        var type = response.headers["content-type"],
-            prefix = "data:" + type + ";base64,",
-            body = "";
-        response.setEncoding('binary');
-        response.on('end', function () {
-            var base64 = new Buffer(body, 'binary').toString('base64'),
-                data = prefix + base64;
-            //console.log("img", data);
-            cb(data);
-        });
-        response.on('data', function (chunk) {
-            if (response.statusCode == 200) {
-              body += chunk;
-            }
-        });
-        response.on('error', function (e) {
-            console.log('error downloading image', e);
-        });
-    });
-    irequest.end();
-  }
+    var img = URL.parse(imgsrc);
+    //console.log("img", img);
+    if (img) {
+      var irequest = http.createClient(80, img.hostname).request('GET', img.pathname, {'host': img.hostname});
+      irequest.on('response', function (response) {
+          var type = response.headers["content-type"],
+              prefix = "data:" + type + ";base64,",
+              body = "";
+          response.setEncoding('binary');
+          response.on('end', function () {
+              var base64 = new Buffer(body, 'binary').toString('base64'),
+                  data = prefix + base64;
+              //console.log("img", data);
+              cb(data);
+          });
+          response.on('data', function (chunk) {
+              if (response.statusCode == 200) {
+                body += chunk;
+              }
+          });
+          response.on('error', function (e) {
+              console.log('error downloading image', e);
+          });
+      });
+      irequest.on('error', function (exception) {
+        console.error("error retrieving images", exception);
+      });
+      irequest.end();
+    }
   } catch(e) { console.log("getImage", e); }
 }
 
