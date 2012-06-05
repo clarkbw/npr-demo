@@ -465,16 +465,35 @@ Lawnchair.adapter('indexed-db', (function(){
   var getIDB = function() {
     return window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.oIndexedDB || window.msIndexedDB;
   };
-  var getIDBTransaction = function() {
-      return window.IDBTransaction || window.webkitIDBTransaction ||
-          window.mozIDBTransaction || window.oIDBTransaction ||
-          window.msIDBTransaction;
-  };
   var getIDBKeyRange = function() {
       return window.IDBKeyRange || window.webkitIDBKeyRange ||
           window.mozIDBKeyRange || window.oIDBKeyRange ||
           window.msIDBKeyRange;
   };
+
+  //The IndexedDB API when to string names for transaction
+  //modes, but some browsers, like Firefox 13, still
+  //use the older IDBTransaction constants
+  var IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction ||
+          window.mozIDBTransaction || window.oIDBTransaction ||
+          window.msIDBTransaction;
+  var getMode;
+
+  if (IDBTransaction && IDBTransaction.READ_WRITE) {
+    getMode = function (value) {
+        if (value === 'readywrite') {
+            return IDBTransaction.READ_WRITE;
+        } else if (value === 'readonly') {
+            return IDBTransaction.READ_ONLY;
+        } else {
+            return IDBTransaction.VERSION_CHANGE;
+        }
+    };
+  } else {
+    getMode = function (value) {
+        return value;
+    }
+  }
 
 
   return {
@@ -550,7 +569,7 @@ Lawnchair.adapter('indexed-db', (function(){
          var self = this;
          var win  = function (e) { if (callback) { obj.key = e.target.result; self.lambda(callback).call(self, obj) }};
 
-         var trans = this.db.transaction(STORE_NAME, getIDBTransaction().READ_WRITE);
+         var trans = this.db.transaction(STORE_NAME, getMode("readwrite"));
          var store = trans.objectStore(STORE_NAME);
          var request = obj.key ? store.put(obj, obj.key) : store.put(obj);
 
@@ -697,7 +716,7 @@ Lawnchair.adapter('indexed-db', (function(){
         var self = this;
         var win  = function () { if (callback) self.lambda(callback).call(self) };
 
-        var request = this.db.transaction(STORE_NAME, getIDBTransaction().READ_WRITE).objectStore(STORE_NAME)['delete'](keyOrObj);
+        var request = this.db.transaction(STORE_NAME, getMode("readwrite")).objectStore(STORE_NAME)['delete'](keyOrObj);
         request.onsuccess = win;
         request.onerror = fail;
         return this;
@@ -716,7 +735,7 @@ Lawnchair.adapter('indexed-db', (function(){
 
         try {
             this.db
-                .transaction(STORE_NAME, getIDBTransaction().READ_WRITE)
+                .transaction(STORE_NAME, getMode("readwrite"))
                 .objectStore(STORE_NAME).clear().onsuccess = win;
 
         } catch(e) {
