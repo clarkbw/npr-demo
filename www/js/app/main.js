@@ -5,7 +5,7 @@ define(function (require) {
 
     var $ = require('jquery'),
         Backbone = require('backbone'),
-        Store = require("backbone-idb"),
+        Store = require("backbone-storage"),
         _ = require('underscore'),
         moment = require("moment");
 
@@ -196,7 +196,7 @@ define(function (require) {
                 $("div.story").html(view.render().el)
               }
               $("div.story").fadeIn("fast", function() { $win.scrollTop(0); });
-              
+
             }
         });
 
