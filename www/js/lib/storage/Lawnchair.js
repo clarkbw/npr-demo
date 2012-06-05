@@ -481,7 +481,7 @@ Lawnchair.adapter('indexed-db', (function(){
 
   if (IDBTransaction && IDBTransaction.READ_WRITE) {
     getMode = function (value) {
-        if (value === 'readywrite') {
+        if (value === 'readwrite') {
             return IDBTransaction.READ_WRITE;
         } else if (value === 'readonly') {
             return IDBTransaction.READ_ONLY;

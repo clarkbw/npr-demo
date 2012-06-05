@@ -39,7 +39,7 @@ _.extend(root.Store.prototype, {
     //code to use .key instead of .id
     if (!model.key) { model.key = model.id};
 
-    this.store.save(model);
+    this.store.save(model.toJSON());
   },
 
   create: function(model, cb) {

@@ -74,7 +74,11 @@ define(function (require) {
               collection['reset'](collection.parse(resp, xhr), options);
               try {
                 _.each(collection.models, function(story) {
+                  try {
                     story.save();
+                  } catch (e) {
+                    console.log(e);
+                  }
                 });
               } catch (e) { console.log("error saving", e); }
             };
