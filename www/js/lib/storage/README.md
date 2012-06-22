@@ -1,6 +1,7 @@
 # Storage
 
-Handles the storage abstraction. By default it uses [lawnchair]() for the abstraction, with the
+Handles the storage abstraction. By default it uses
+[lawnchair](https://github.com/brianleroux/lawnchair) for the abstraction, with the
 following adapters built in:
 
 * indexed-db: for the HTML5 future

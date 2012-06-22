@@ -520,11 +520,15 @@ Lawnchair.adapter('indexed-db', (function(){
             // ok, create object store.
             self.store = self.db.createObjectStore(STORE_NAME,
                                                    { autoIncrement: true} );
-            for (var i = 0; i < self.waiting.length; i++) {
-                self.waiting[i].call(self);
-            }
-            self.waiting = [];
-            win();
+            //jrburke: hmm, setTimoeut allowed the callbacks to
+            //modify the db.
+            setTimeout(function () {
+                for (var i = 0; i < self.waiting.length; i++) {
+                  self.waiting[i].call(self);
+                }
+                self.waiting = [];
+                win();
+            }, 15);
         };
         request.onupgradeneeded = function(event) {
             self.db = request.result;
