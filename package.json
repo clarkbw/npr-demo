@@ -1,5 +1,6 @@
 {
   "name": "npr-demo",
+  "version" : "0.0.1",
   "amd": {
     "baseUrl": "www/js/lib"
   },
