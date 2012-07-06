@@ -20,6 +20,7 @@ if (process.env.WEBAPP) {
   app.use(express.static(__dirname + '/www-built'));
   app.use(express.directory(__dirname + '/www-built'));
 } else {
+  // `unset WEBAPP` to get the live version
   app.use(express.static(__dirname + '/www'));
   app.use(express.directory(__dirname + '/www'));
 }
