@@ -13,6 +13,7 @@ define(function (require) {
     // to other objects, like jQuery. These are just used in the example
     // bootstrap modal, not directly in the UI for the network and appCache
     // displays.
+    require('bootstrap/collapse');
     require('bootstrap/transition');
     require('masonry/jquery.masonry');
 
@@ -27,7 +28,8 @@ define(function (require) {
     $(function () {
         // Enable the UI bindings for the network and appCache displays
         require('./uiNetwork')();
-        require('./uiAppCache')();
+        //require('./uiAppCache')();
+        require('./uiWebAppInstall');
 
         // fix sub nav on scroll
         var $win = $(window)
@@ -58,13 +60,14 @@ define(function (require) {
           model : Story,
           fs: StoriesStore,
           comparator : function comparator(story) {
+            //console.log("compare", story);
             return (Date.parse(story.get("pubDate").$text) * -1);
           },
           initialize : function () {
             var collection = this;
             // when the file system is ready run a fetch on the local items
             // after our local fetch run a pull against the remote server for new items
-            this.fs.on("ready", function() { collection.fetch(); collection.pull(); }, this);
+            this.fs.on("ready", function() { collection.fetch({ success : function(collect, list) { collection.reset(list); collection.pull(); } });  }, this);
           },
           // read from the remote server and save all items in the local storage as they arrive
           pull: function() {
@@ -83,6 +86,7 @@ define(function (require) {
           },
           url : '/stories',
           parse: function(response) {
+            //console.log("parse", response);
             // a remote response will return this list / story object
             if (response && response.list && response.list.story) {
                 return response.list.story;
@@ -96,17 +100,17 @@ define(function (require) {
 
         var Stories = new StoryList;
 
-        var StoryListView = Backbone.View.extend({
+        var StoriesListView = Backbone.View.extend({
           tagName:  "div",
           className: "stories",
           initialize : function () {
+            this.model.bind("change", this.render, this);
             this.model.bind("reset", this.render, this);
 
             $(this.el).masonry({
                 itemSelector: '.story-item',
                 gutterWidth : 10,
                 columnWidth: function( containerWidth ) {
-                  console.log( "containerWidth", containerWidth);
                   if ( containerWidth <= 580) {
                     return containerWidth;
                   }
@@ -151,57 +155,75 @@ define(function (require) {
           }
         });
 
+        var StoryListView = new StoriesListView({model:Stories, id : "stories"});
+
+        var StoryView = Backbone.View.extend({
+          tagName:  "div",
+          className: "story",
+          template: _.template($('#story-view-template').html()),
+          initialize : function() {
+            //this.model.bind("reset", this.render, this);
+          },
+          events: {
+            "click button.add" : "addToPlaylist"
+          },
+          addToPlaylist : function(e) {
+            //console.log(e);
+            //console.log(this);
+            //window.PlayListItems.add(new Story(this.model.toJSON()));
+          },
+          render : function() {
+            $(this.el).html(this.template(this.model.toJSON()));
+            return this;
+          }
+        });
+
         // Router
         var AppRouter = Backbone.Router.extend({
-            scrollPosition : null,
             routes : {
               "":"list",
               "story/:id":"getStory"
             },
             initialize : function () {
-              this.StoryListView = new StoryListView({model:Stories});
-              this.$stories = null;
-              this.$story = null;
+
             },
             list : function () {
-              if (!this.$stories) {
-                this.$stories = this.StoryListView.render().el;
+              $("#story").hide();
+
+              if ($("#stories").length <= 0) {
+                var $stories = StoryListView.render().el;
+                $('#content').append($stories);
+                $($stories).masonry('reload');
               }
-              $('#content').append(this.$stories).fadeIn("fast");
+              $("#stories").fadeIn("fast");
               //$("ul.stories").fadeIn("fast", function() { $win.scrollTop((this.scrollPosition)? $(this.scrollPosition).offset().top : 0 ); });
             },
             getStory : function (id) {
-              // TODO: remember scroll position
-              this.$stories = $("div.stories").remove();
+              $("#stories").hide();
+              console.log("Stories", Stories, id, Stories.get(id));
 
               var story = Stories.get(id);
-              if (story == null) {
-                var app = this;
-                console.log("story == null");
-                StoriesStore.on("ready",
-                              function waitfordb() {
-                                console.log("story == null");
-                                StoriesStore.off("ready", waitfordb, this);
-                                return app.getStory(id);
-                              },
-                              this);
-                return;
-              }
-              //console.log(id, window.Stories, story);
-              var view = new window.StoryView({model:story});
+              if (story) {
+                var StoryPageView = new StoryView({model:story, id : "story"});
+                this.$story = StoryPageView.render().el;
 
-              if ($("div.story").length <= 0) {
-                $('#content').append(view.render().el);
+                if ($("#story").length <= 0) {
+                  $('#content').append(this.$story);
+                } else {
+                  $("#story").replaceWith(this.$story)
+                }
+                //$("div.story").fadeIn("fast", function() { $win.scrollTop(0); });
               } else {
-                $("div.story").html(view.render().el)
+                console.log("story == null");
               }
-              $("div.story").fadeIn("fast", function() { $win.scrollTop(0); });
-              
             }
         });
 
-        var App = new AppRouter();
-        Backbone.history.start();
+        var App = null;
+        Stories.fs.on("ready", function() {
+          App = new AppRouter();
+          Backbone.history.start();
+        });
 
     });
 });
