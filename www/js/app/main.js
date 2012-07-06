@@ -146,7 +146,7 @@ define(function (require) {
             "click" : "view"
           },
           view : function(ev) {
-            console.log(ev);
+            //console.log(ev);
             App.navigate("story/" + $(ev.currentTarget).attr("id").replace("story-",""), {trigger: true});
           },
           render : function() {
@@ -159,7 +159,7 @@ define(function (require) {
 
         var StoryView = Backbone.View.extend({
           tagName:  "div",
-          className: "story",
+          className: "story-view",
           template: _.template($('#story-view-template').html()),
           initialize : function() {
             //this.model.bind("reset", this.render, this);
@@ -200,7 +200,7 @@ define(function (require) {
             },
             getStory : function (id) {
               $("#stories").hide();
-              console.log("Stories", Stories, id, Stories.get(id));
+              //console.log("Stories", Stories, id, Stories.get(id));
 
               var story = Stories.get(id);
               if (story) {

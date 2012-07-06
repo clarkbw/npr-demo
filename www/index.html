@@ -104,9 +104,10 @@
     </script>
     <!--<div class="pull-right"><button class="btn add" data-id="<%= id %>">+</button></div>-->
     <script type="text/template" id="story-view-template">
+        <div class="story">
         <h2 class="title"><%= title.$text %></h2>
         <% if (typeof(byline) != "undefined") { %>
-            <% _.each(byline, function(by) { %> <div class="byline">by <%= by.name.$text %> &mdash; <span class="date"><%= _.ago(pubDate.$text) %></span></div>  <% return; }); %>
+            <% _.every(byline, function(by) { %> <div class="byline">by <%= by.name.$text %></div><% return false; }); %>
         <% } %>
 
         <div class="image">
@@ -127,6 +128,7 @@
            <% }); %>
         </div>
         <div class="text"><% _.each(textWithHtml.paragraph, function(t) { %><p><%= t.$text %></p><% }); %></div>
+        </div>
     </script>
     <!-- Load the main app module via the module loader -->
     <script async data-main="js/app" src="js/lib/require.js" charset="utf-8"></script>

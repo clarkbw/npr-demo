@@ -40,25 +40,35 @@ body {
     border-radius: none;
 }
 
-.story-item {
-    background-color: #fff;
+.story-item,
+.story-view {
     box-shadow: 0 1px 2px rgba(44, 30, 30, 0.4);
+    background-color: #fff;
+}
+.story-item {
     margin-bottom: 30px;
     margin: 10px;
     width: 270px;
     cursor: pointer;
 }
-.story-item .story {
+.story-item .story,
+.story-view .story {
     margin: 10px;
 }
+
+.story-view .story {
+    padding: 10px 0;
+}
+
 .story-item .image,
 .story .image {
     position: relative;
 }
-.story-item .image img {
+.story .image img {
     width: 100%;
 }
-.story-item .caption {
+.story-item .caption,
+.story-view .caption {
     color: #444;
     font-size: 90%;
     position: absolute;
@@ -81,6 +91,10 @@ body {
 .story-item .title {
     margin: 5px auto;
     text-shadow: 1px 1px 1px #DDDDDD;
+}
+
+.story-view .image {
+    margin: 10px auto;
 }
 
 .story-item .teaser {
