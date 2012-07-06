@@ -19,7 +19,7 @@ define(function (require) {
 
         // Handles update to the DOM that shows the network state.
         function updateNetworkDisplay(on) {
-            networkDom.text(on ? 'on' : 'off');
+            networkDom.text(on ? 'online' : 'offline');
             networkDom.toggleClass('label-success', on);
             networkDom.toggleClass('label-important', !on);
         }
