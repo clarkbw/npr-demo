@@ -2,38 +2,27 @@ var http = require('http'),
     URL = require('url'),
     mime = require("mime");
 
+var ONE_SECOND = 1 * 1000,
+    ONE_MINUTE = ONE_SECOND * 60,
+    ONE_HOUR = ONE_MINUTE * 60,
+    ONE_DAY = ONE_HOUR * 24;
+
 mime.define({
   "text/cache-manifest" : [".appcache"],
 });
 
-var REDIS = { PORT : 6379, HOST : "127.0.0.1", PASSWORD : ""};
-
-if (process.env.VCAP_SERVICES){
-  // here's where we'd override the port and host variables
-  srv = JSON.parse(process.env.VCAP_SERVICES);
-  //console.log(srv);
-  var credentials = srv["redis-2.2"][0]["credentials"];
-  REDIS.HOST = credentials.host;
-  REDIS.PORT = credentials.port;
-  REDIS.PASSWORD = credentials.password;
-}
-
-var redis = require("redis"),
-    client = redis.createClient(REDIS.PORT, REDIS.HOST);
-
-if (process.env.VCAP_SERVICES){
-  client.auth(REDIS.PASSWORD);
-}
-
-client.on("error", function (err) {
-  console.log("Redis connection error to " + client.host + ":" + client.port + " - " + err);
-});
-
+var client = require("./redis-vcap").client;
 var express = require('express'),
     app = express.createServer();
 
-app.use(express.static(__dirname + '/www'));
-app.use(express.directory(__dirname + '/www'));
+// run with `export WEBAPP=true;` to get the built version
+if (process.env.WEBAPP) {
+  app.use(express.static(__dirname + '/www-built'));
+  app.use(express.directory(__dirname + '/www-built'));
+} else {
+  app.use(express.static(__dirname + '/www'));
+  app.use(express.directory(__dirname + '/www'));
+}
 
 app.all('/stories', function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -55,7 +44,7 @@ app.get('/stories', function(req, res, next) {
       ret.list[item] = JSON.parse(obj[item]);
     }
     client.hgetall("stories:stories", function(err, obj) {
-      var count = 7;
+      var count = 12;
       for (var item in obj) {
         if (count-- <= 0) {
           break;
@@ -260,7 +249,7 @@ function getImage(imgsrc, cb) {
 getStories();
 
 // Run getStories every hour
-setInterval(getStories, (60 * (60 * (1 * 1000))));
+setInterval(getStories, ONE_HOUR);
 
 var port = process.env.VCAP_APP_PORT || 8888;
 console.log("listening on: ", port );
