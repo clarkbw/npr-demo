@@ -35,8 +35,10 @@ if (exports.requestFileSystem || exports.webkitRequestFileSystem) {
   return;
 }
 
-exports.indexedDB = exports.indexedDB || exports.mozIndexedDB ||
-                    exports.msIndexedDB;
+if (!exports.indexedDB) {
+  exports.indexedDB = exports.indexedDB || exports.mozIndexedDB ||
+                      exports.msIndexedDB;
+}
 exports.BlobBuilder = exports.BlobBuilder || exports.MozBlobBuilder ||
                       exports.MSBlobBuilder;
 exports.TEMPORARY = 0;
@@ -84,7 +86,7 @@ var FILE_STORE_ = 'entries';
 var DIR_SEPARATOR = '/';
 var DIR_OPEN_BOUND = String.fromCharCode(DIR_SEPARATOR.charCodeAt(0) + 1);
 
-var READ_ONLY = IDBTransaction.READ_ONLY || 'readonly';
+var READ_ONLY = (READ_ONLY in IDBTransaction)? IDBTransaction.READ_ONLY : 'readonly';
 var READ_WRITE = IDBTransaction.READ_WRITE || 'readwrite';
 
 // When saving an entry, the fullPath should always lead with a slash and never
