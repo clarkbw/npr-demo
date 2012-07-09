@@ -5,7 +5,8 @@ var http = require('http'),
 var ONE_SECOND = 1 * 1000,
     ONE_MINUTE = ONE_SECOND * 60,
     ONE_HOUR = ONE_MINUTE * 60,
-    ONE_DAY = ONE_HOUR * 24;
+    ONE_DAY = ONE_HOUR * 24,
+    ONE_YEAR = ONE_DAY * 365;
 
 mime.define({
   "text/cache-manifest" : [".appcache"],
@@ -15,25 +16,40 @@ var client = require("./redis-vcap").client;
 var express = require('express'),
     app = express.createServer();
 
-// run with `export WEBAPP=true;` to get the built version
+app.configure(function() {
+  app.use(express.logger());
+  app.set("port", process.env.VCAP_APP_PORT || 8888);
+});
+
+// you can set this with NODE_ENV="development" or NODE_ENV="production"
+app.configure('development', function(){
+    app.use(express.static(__dirname + '/www'));
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+});
+
+app.configure('production', function(){
+  app.use(express.static(__dirname + '/www-built', { maxAge: ONE_YEAR }));
+  app.use(express.errorHandler());
+});
+
+// Alternatively you can run with `export WEBAPP=true;` to get the web app version
 if (process.env.WEBAPP) {
   app.use(express.static(__dirname + '/www-built'));
-  app.use(express.directory(__dirname + '/www-built'));
+  //app.use(express.directory(__dirname + '/www-built'));
 } else {
-  // `unset WEBAPP` to get the live version
   app.use(express.static(__dirname + '/www'));
-  app.use(express.directory(__dirname + '/www'));
+  //app.use(express.directory(__dirname + '/www'));
 }
 
 app.all('/stories', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  //res.header("Access-Control-Allow-Origin", "*");
+  //res.header("Access-Control-Allow-Headers", "X-Requested-With");
   next();
 })
 
 app.get('/stories', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  //res.header("Access-Control-Allow-Origin", "*");
+  //res.header("Access-Control-Allow-Headers", "X-Requested-With");
   res.contentType('json');
   client.hgetall("stories:info", function(err, obj) {
     //console.log("stories:info", obj);
@@ -55,7 +71,6 @@ app.get('/stories', function(req, res, next) {
       res.send(ret);
     });
   });
-  //res.send(stories);
 });
 
 app.get('/stories/:id', function(req, res, next) {
@@ -78,8 +93,8 @@ app.get('/stories/:id', function(req, res, next) {
 });
 
 app.get('/playlist', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  //res.header("Access-Control-Allow-Origin", "*");
+  //res.header("Access-Control-Allow-Headers", "X-Requested-With");
   res.contentType('json');
   client.smembers("playlist", function(err, obj) {
     console.log("smembers:playlist", obj);
@@ -145,6 +160,7 @@ function getStories() {
               if (count === total) {
                 client.hsetnx("stories:stories", story.id, JSON.stringify(story),
                   function(err, isNew) {
+                    console.log("err", err);
                     console.log("isNew", isNew);
                   }
                 );
@@ -152,12 +168,14 @@ function getStories() {
             }
 
             // not getting thumbnails for now
-            if (false && story.thumbnail) {
+            if (story.thumbnail) {
               for (var index in story.thumbnail) {
-                if (story.thumbnail.hasOwnProperty(index)) {
+                if (story.thumbnail.hasOwnProperty(index) && index == "medium") {
                   var item = story.thumbnail[index];
                   total += 1;
-                  getImage(item.$text, function(data) {
+                  // Getting tricky here by trying to grab a specific size that might not exist
+                  getImage(item.$text.replace(/s=[\d]+/,"s=2"), function(data) {
+                    item.type = index;
                     item.source_data = data;
                     done();
                   });
@@ -165,7 +183,8 @@ function getStories() {
               }
             }
 
-            if (story.image && story.image.length) {
+            // ignore the larger images for now since they are our real problem
+            if (false && story.image && story.image.length) {
               story.image.forEach(function (image) {
                 var crop = image.crop;
                 if (!crop) {
@@ -182,7 +201,7 @@ function getStories() {
                 crop.forEach(function (item) {
                   if (hasValidCrop(item)) {
                     total += 1;
-                    getImage(item.src, function(data) {
+                    getImage(item.src + "&s=5", function(data) {
                       item.source_data = data;
                       done();
                     });
@@ -252,7 +271,6 @@ getStories();
 // Run getStories every hour
 setInterval(getStories, ONE_HOUR);
 
-var port = process.env.VCAP_APP_PORT || 8888;
-console.log("listening on: ", port );
+app.listen(app.settings.port);
 
-app.listen(port);
+console.log("listening on: ", "http://" + app.address().address + ":" + app.address().port);

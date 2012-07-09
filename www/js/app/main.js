@@ -74,12 +74,22 @@ define(function (require) {
             var options =  { parse : true };
             var collection = this;
             options.success = function(resp, status, xhr) {
-              collection['reset'](collection.parse(resp, xhr), options);
-              try {
+              // here we need to examine the results and only add
+              // items which are new, otherwise we get this odd reset pattern
+              if (collection.models.length <= 0) {
+                collection['reset'](collection.parse(resp, xhr), options);
                 _.each(collection.models, function(story) {
-                    story.save();
+                  story.save();
                 });
-              } catch (e) { console.log("error saving", e); }
+              } else {
+                _.each(collection.parse(resp, xhr), function(story) {
+                  var model = collection.get(story.id);
+                  if (!model) {
+                    model = collection.add(story);
+                    console.log(model);
+                  }
+                });
+              }
             };
             options.error = Backbone.wrapError(options.error, collection, options);
             return (this.sync || Backbone.sync).call(this, 'pull', this, options);
@@ -222,7 +232,7 @@ define(function (require) {
         var App = null;
         Stories.fs.on("ready", function() {
           App = new AppRouter();
-          Backbone.history.start();
+          Backbone.history.start({pushState: true});
         });
 
     });

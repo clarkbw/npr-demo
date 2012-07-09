@@ -60,21 +60,16 @@
 
     <script type="text/template" id="story-item-template">
         <div class="story">
-            <% if (typeof(image) != "undefined") { %>
+            <% if (typeof(thumbnail) != "undefined") { %>
             <div class="image">
-              <% _.every(image, function(i) { %>
-                <% if (typeof(i.crop) != "undefined") { %>
-                  <% _.every(i.crop, function(c) { %>
-                    <% if (c.source_data && (c.type == "square")) { %>
-                        <img class="" src="<%= c.source_data %>">
-                        <div class="caption">
-                          <span class="date"><%= _.ago(pubDate.$text) %></span>
-                          <span class="slug"><%= slug.$text %></span>
-                        </div>
-                        <% return false; %>
-                    <% } else { return true; } %>
-                  <% }); %>
-                  <% return false; %>
+              <% _.every(thumbnail, function(i) { %>
+                <% if (i.source_data) { %>
+                    <img class="" src="<%= i.source_data %>">
+                    <div class="caption">
+                      <span class="date"><%= _.ago(pubDate.$text) %></span>
+                      <span class="slug"><%= slug.$text %></span>
+                    </div>
+                    <% return false; %>
                 <% } else { return true; } %>
                <% }); %>
             </div>
@@ -110,23 +105,26 @@
             <% _.every(byline, function(by) { %> <div class="byline">by <%= by.name.$text %></div><% return false; }); %>
         <% } %>
 
+        <% if (typeof(thumbnail) != "undefined") { %>
         <div class="image">
-          <% _.every(image, function(i) { %>
-            <% if (typeof(i.crop) != "undefined") { %>
-              <% _.every(i.crop, function(c) { %>
-                <% if (c.source_data && (c.type == "square")) { %>
-                    <img class="" src="<%= c.source_data %>">
-                    <div class="caption">
-                      <span class="date"><%= _.ago(pubDate.$text) %></span>
-                      <span class="slug"><%= slug.$text %></span>
-                    </div>
-                    <% return false; %>
-                <% } else { return true; } %>
-              <% }); %>
-              <% return false; %>
+          <% _.every(thumbnail, function(i) { %>
+            <% if (i.source_data) { %>
+                <img class="" src="<%= i.source_data %>">
+                <div class="caption">
+                  <span class="date"><%= _.ago(pubDate.$text) %></span>
+                  <span class="slug"><%= slug.$text %></span>
+                </div>
+                <% return false; %>
             <% } else { return true; } %>
            <% }); %>
         </div>
+        <% } else { %>
+          <div class="meta">
+            <span class="date pull-right"><%= _.ago(pubDate.$text) %></span>
+            <span class="slug"><%= slug.$text %></span>
+          </div>
+        <% } %>
+
         <div class="text"><% _.each(textWithHtml.paragraph, function(t) { %><p><%= t.$text %></p><% }); %></div>
         </div>
     </script>

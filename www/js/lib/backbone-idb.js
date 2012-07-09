@@ -72,7 +72,7 @@ _.extend(root.Store.prototype, {
 
   // Retrieve a model from `this.data` by id.
   find: function(model, cb) {
-    console.log("find", this.data[model.id], model, this.data);
+    //console.log("find", this.data[model.id], model, this.data);
     return this.data[model.id];
 
     //this.dir.getFile(model.id, {}, function(file) {
@@ -85,7 +85,7 @@ _.extend(root.Store.prototype, {
 
   // Return the array of all models currently in storage.
   findAll: function(cb) {
-    console.log("findall", this.data);
+    //console.log("findall", this.data);
     return _.toArray(this.data);
 
     //this.dir.createReader().readEntries(function(results) {
@@ -100,12 +100,12 @@ _.extend(root.Store.prototype, {
 
   // Delete a model from `this.data`, returning it.
   destroy: function(model, cb) {
-    console.log("destroy", model);
+    //console.log("destroy", model);
     delete this.data[model.id]
     this.dir.getFile(model.id, {}, function(file) {
-      console.log("destroy", file);
+      //console.log("destroy", file);
       file.remove(function(f) {
-        console.log("destroyd", f);
+        //console.log("destroyd", f);
       });
     });
     return model;
@@ -118,7 +118,7 @@ _.extend(root.Store.prototype, {
 Backbone.remotesync = Backbone.sync;
 Backbone.sync = function(method, model, options) {
 
-  console.log("sync", method, model, options);
+  //console.log("sync", method, model, options);
   var resp,
       store = model.fs || model.collection.fs;
 
