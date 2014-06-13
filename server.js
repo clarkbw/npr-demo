@@ -13,35 +13,19 @@ mime.define({
 });
 
 var client = require("./redis-vcap").client;
-var express = require('express'),
-    app = express.createServer();
+var express = require('express');
+var app = express();
 
-app.configure(function() {
-  app.use(express.logger());
-  app.set("port", process.env.VCAP_APP_PORT || 8888);
-});
+app.use(express.static(__dirname + '/www'));
 
-// you can set this with NODE_ENV="development" or NODE_ENV="production"
-app.configure('development', function(){
-    app.use(express.static(__dirname + '/www'));
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-});
-
-app.configure('production', function(){
-  app.use(express.static(__dirname + '/www-built', { maxAge: ONE_YEAR }));
-  app.use(express.errorHandler());
-});
-
-// Alternatively you can run with `export WEBAPP=true;` to get the web app version
-if (process.env.WEBAPP) {
+if (process.env.NODE_ENV != "development") {
   app.use(express.static(__dirname + '/www-built'));
-  //app.use(express.directory(__dirname + '/www-built'));
 } else {
   app.use(express.static(__dirname + '/www'));
-  //app.use(express.directory(__dirname + '/www'));
 }
 
 app.all('/stories', function(req, res, next) {
+  console.log('%s %s', req.method, req.url);
   //res.header("Access-Control-Allow-Origin", "*");
   //res.header("Access-Control-Allow-Headers", "X-Requested-With");
   next();
@@ -124,6 +108,8 @@ app.post('/stories', function(req, res, next) {
 })
 
 function getStories() {
+  // Run getStories every hour
+  setInterval(getStories, ONE_HOUR);
 
   var options = {
     port: 80,
@@ -236,7 +222,13 @@ function getImage(imgsrc, cb) {
     var img = URL.parse(imgsrc);
     //console.log("img", img);
     if (img) {
-      var irequest = http.createClient(80, img.hostname).request('GET', img.pathname, {'host': img.hostname});
+      var options = {
+        port: 80,
+        host: img.hostname,
+        path: img.pathname,
+        method: 'GET'
+      };
+      var irequest = http.request(options);
       irequest.on('response', function (response) {
           var type = response.headers["content-type"],
               prefix = "data:" + type + ";base64,",
@@ -265,12 +257,7 @@ function getImage(imgsrc, cb) {
   } catch(e) { console.log("getImage", e); }
 }
 
-// Run getStories now
-getStories();
-
-// Run getStories every hour
-setInterval(getStories, ONE_HOUR);
-
-app.listen(app.settings.port);
-
-console.log("listening on: ", "http://" + app.address().address + ":" + app.address().port);
+var server = app.listen(Number(process.env.PORT || 8888), function() {
+  getStories();
+  console.log('NODE_ENV=%s http://%s:%d', app.settings.env, server.address().address, server.address().port);
+});
