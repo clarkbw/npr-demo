@@ -1,5 +1,7 @@
 # npr-demo
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/clarkbw/npr-demo.svg)](https://greenkeeper.io/)
+
 This is a web app demo that shows consuming some data from NPR in a web app
 format, that can be "installed" in different browser environments: Firefox,
 Chrome and iOS at the moment.
